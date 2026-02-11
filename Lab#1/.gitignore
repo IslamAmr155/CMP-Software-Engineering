@@ -1,0 +1,12 @@
+*.json
+*.pdf
+materials/
+*.cmd
+*.bin
+*.md
+*.ts
+*.eslint*
+*.yml
+*.nycrc
+*LICENSE
+node_modules/
