@@ -1,80 +1,154 @@
-// items, transactions, categories, fields
-var i = [], t = [], c = [], f = {};
-function doStuff(a, b) {
-  if (["add", "edit", "rmI"].includes(a)) {
-    if (a === "add") {
-      var itm = { n: b[0], cat: b[1], qty: b[2], prc: b[3], unt: b[4], added: new Date(), custF: b[5] || {} };
-      i.push(itm);
-      if (!c.includes(b[1])) c.push(b[1]);
-      t.push({ type: "add", itm });
-    } else if (a === "edit" && i[b[0]]) {
-      t.push({ type: "edit", old: i[b[0]], new: b.slice(1) });
-      i[b[0]] = { ...i[b[0]], n: b[1], cat: b[2], qty: b[3], prc: b[4], unt: b[5], custF: b[6] || {} };
-    } else if (a === "rmI" && i[b[0]]) {
-      t.push({ type: "delete", itm: i[b[0]] });
-      i.splice(b[0], 1);
-    }
-    console.log("=== Dashboard ===\nItems: " + i.length + "\nTotal: $" + i.reduce((tot, x) => tot + x.qty * x.prc, 0).toFixed(2) + "\nCats: " + c.join(', '));
-  }
-  if (a === "Imprt") b[0].forEach(x => doStuff("add", [x.n, x.cat, x.quantity, x.price, x.unit]));
-  if (a === "addFld" && !f[b[0]]) f[b[0]] = null;
-  if (a === "udCFld") ((o) => o && (o.custF[b[1]] = b[2]))(i.find(x => x.n === b[0]));
-  if (["Sale", "rstck"].includes(a)) {
-    for (let k of i) {
-      if (k.n === b[0]) {
-        if (a === "Sale" && k.qty >= b[1]) {
-          k.qty -= b[1];
-          t.push({ type: "sale", itm: k, qtyS: b[1], d: new Date() });
-          console.log(`Sold ${b[1]} ${k.unt} of ${k.n}`);
-        }
-        if (a === "rstck") {
-          k.qty += b[1];
-          t.push({ type: "restock", itm: k, qtyR: b[1], d: new Date() });
-          console.log(`Restocked ${b[1]} ${k.unt} of ${k.n}`);
-        }
-        break;
-      }
-    }
-  }
-  if (a === "srch") console.log(i.filter(x => [x.n, x.cat, x.prc].some(v => v.toString().toLowerCase().includes(b[0].toLowerCase()))));
-  if (a === "vwI") console.log("=== Inv ===", i);
-  if (a === "xprtAll") console.log("CSV:\n" + ["Name,Category,Quantity,Price,Unit,AddedAt"].concat(i.map(x => Object.values(x).join(','))).join('\n'));
-  if (a === "vwAllT") console.log("Transactions:\n", t);
-  if (a === "vwIAg") console.log(i.map(x => `${x.n}: ${Math.floor((new Date() - new Date(x.added)) / (86400000))}d`).join('\n'));
+const items = [];
+const transactions = [];
+const categories = [];
+const fields = {};
+
+function addItem(args) {
+  const item = {
+    name: args[0],
+    category: args[1],
+    quantity: Number(args[2]),
+    price: Number(args[3]),
+    unit: args[4],
+    addedAt: new Date(),
+    customFields: args[5] || {},
+  };
+  items.push(item);
+  if (!categories.includes(args[1])) categories.push(args[1]);
+  transactions.push({ type: "add", item });
+  printDashboard();
+  checkLowStock(item);
 
 }
 
+function editItem(args) {
+  if (!items[args[0]]) { console.log("No item at index " + args[0]); return; }
+  transactions.push({ type: "edit", oldItem: { ...items[args[0]] }, newValues: args.slice(1) });
+  items[args[0]] = {
+    ...items[args[0]],
+    name: args[1],
+    category: args[2],
+    quantity: Number(args[3]),
+    price: Number(args[4]),
+    unit: args[5],
+    customFields: args[6] || {},
+  };
+  printDashboard();
+  checkLowStock(items[args[0]]);
 
+}
+function checkLowStock(item) {
+  if (item.quantity < 10) {
+    console.log("ALERT: Item " + item.name + " is below 10 units! Current quantity: " + item.quantity);
+  }
+}
+function removeItem(args) {
+  if (!items[args[0]]) { console.log("No item at index " + args[0]); return; }
+  transactions.push({ type: "delete", item: items[args[0]] });
+  items.splice(args[0], 1);
+  printDashboard();
+}
 
+function importItems(args) {
+  args[0].forEach((x) => addItem([x.name, x.category, x.quantity, x.price, x.unit]));
+}
 
+function addField(args) {
+  if (fields[args[0]] !== undefined) { console.log("Field already exists."); return; }
+  fields[args[0]] = null;
+  console.log("Field \"" + args[0] + "\" added.");
+}
 
+function updateField(args) {
+  const item = items.find((x) => x.name === args[0]);
+  if (!item) { console.log("Item not found."); return; }
+  item.customFields[args[1]] = args[2];
+  console.log("Updated field \"" + args[1] + "\" on \"" + args[0] + "\" to \"" + args[2] + "\".");
+}
 
+function sellItem(args) {
+  const item = items.find((x) => x.name === args[0]);
+  if (!item) { console.log("Item not found."); return; }
+  if (item.quantity < Number(args[1])) { console.log("Not enough stock."); return; }
+  item.quantity -= Number(args[1]);
+  transactions.push({ type: "sale", item, quantitySold: Number(args[1]), date: new Date() });
+  console.log("Sold " + args[1] + " " + item.unit + " of " + item.name + ".");
+  checkLowStock(item);
 
+}
 
+function restockItem(args) {
+  const item = items.find((x) => x.name === args[0]);
+  if (!item) { console.log("Item not found."); return; }
+  item.quantity += Number(args[1]);
+  transactions.push({ type: "restock", item, quantityRestocked: Number(args[1]), date: new Date() });
+  console.log("Restocked " + args[1] + " " + item.unit + " of " + item.name + ".");
+  checkLowStock(item);
+}
 
-// just a loop to keep asking for commands until "exit" is entered NOT PART OF THE REQUIREMENT, just for testing purposes
+function searchItems(args) {
+  const query = args[0].toLowerCase();
+  const results = items.filter((x) =>
+    [x.name, x.category, x.price].some((v) => v.toString().toLowerCase().includes(query))
+  );
+  console.log("Search Results:", results);
+}
+
+function viewInventory() {
+  console.log("=== Inventory ===", items);
+}
+
+function exportItems() {
+  const header = "Name,Category,Quantity,Price,Unit,AddedAt";
+  const rows = items.map((x) => [x.name, x.category, x.quantity, x.price, x.unit, x.addedAt].join(","));
+  console.log("CSV:\n" + [header, ...rows].join("\n"));
+}
+
+function viewTransactions() {
+  console.log("Transactions:\n", transactions);
+}
+
+function viewAge() {
+  const now = new Date();
+  console.log(items.map((x) => x.name + ": " + Math.floor((now - new Date(x.addedAt)) / 86400000) + "d old").join("\n"));
+}
+
+function printDashboard() {
+  const total = items.reduce((sum, x) => sum + x.quantity * x.price, 0).toFixed(2);
+  console.log("=== Dashboard ===\nItems: " + items.length + "\nTotal: $" + total + "\nCategories: " + categories.join(", "));
+}
+
+function SuperMarketTasks(action, args) {
+  switch (action) {
+    case "add":return addItem(args);
+    case "edit":return editItem(args);
+    case "remove":return removeItem(args);
+    case "import":return importItems(args);
+    case "addField":return addField(args);
+    case "updateField":return updateField(args);
+    case "sale":return sellItem(args);
+    case "restock":return restockItem(args);
+    case "search":return searchItems(args);
+    case "view":return viewInventory();
+    case "export":return exportItems();
+    case "viewTransactions": return viewTransactions();
+    case "viewAge":return viewAge();
+    default: console.log("Unknown action Try: add, edit, remove, sale, restock, import, view, search, export, viewTransactions, viewAge, addField, updateField");
+  }
+}
+
 const readline = require("readline");
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
 function loop() {
   rl.question("Enter command: ", (line) => {
-    if (line.trim().toLowerCase() === "exit") {
-      rl.close();
-      return;
-    }
-
+    if (line.trim().toLowerCase() === "exit") return rl.close();
     try {
-      const parts = line.split(" ");
-      const a = parts[0];
-      const b = parts.slice(1);
-
-      doStuff(a, b);
-    } catch (e) {
-      console.log("Error:", e.message);
+      const parts = line.trim().split(" ");
+      SuperMarketTasks(parts[0], parts.slice(1));
+    } catch (error) {
+      console.log("Error:", error.message);
     }
-
     loop();
   });
 }
