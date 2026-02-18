@@ -10,3 +10,4 @@ materials/
 *.nycrc
 *LICENSE
 node_modules/
+package.json
