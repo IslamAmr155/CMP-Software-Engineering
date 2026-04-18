@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+  <title>Lab1 - start files</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+    crossorigin="anonymous"
+  >
+</head>
+
+<body>
+  <div class="container">
+    <div class="mt-5 text-center">
+      <h1>Student name: <span>write_your_name_here</span></h1>
+      <h3>Student ID: <span>write_your_id_here</span></h3>
+    </div>
+    
+    <div class="row mt-5">
+      <!-- Add Employee Form -->
+      <div class="col-md-6 mb-5">
+        <h1>Add Employee</h1>
+        <form id="employeeForm">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" class="form-control" id="name" placeholder="Enter name" required>
+            </div>
+            <div class="form-group mt-3">
+                <label for="id">ID</label>
+                <input type="number" class="form-control" id="id" placeholder="Enter ID" required>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Submit</button>
+        </form>
+      </div>
+
+      <!-- Update Employee Form -->
+      <div class="col-md-6 mb-5">
+        <h1>Update Employee</h1>
+        <form id="updateEmployeeForm">
+            <div class="form-group">
+                <label for="updateId">Employee ID</label>
+                <input type="number" class="form-control" id="updateId" placeholder="Enter existing employee ID" required>
+            </div>
+            <div class="form-group mt-3">
+                <label for="updateName">New Name</label>
+                <input type="text" class="form-control" id="updateName" placeholder="Enter new name" required>
+            </div>
+            <button type="submit" class="btn btn-warning mt-3">Update</button>
+        </form>
+      </div>
+    </div>
+
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+        </tr>
+      </thead>
+      <tbody id="dataTable">
+        <!-- Table body content will be dynamically generated -->
+      </tbody>
+    </table>
+  </div>
+  <script src="./index.js"></script>
+</body>
+
+</html>
